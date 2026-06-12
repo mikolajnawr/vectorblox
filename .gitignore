@@ -1,0 +1,10 @@
+# Ignoruj środowisko wirtualne Pythona
+venv/
+__pycache__/
+
+# Ignoruj wygenerowane pliki HEX (zajmują dużo miejsca, a i tak generuje je skrypt)
+*.hex
+
+# Ignoruj pliki tymczasowe
+*.log
+wynik.png
