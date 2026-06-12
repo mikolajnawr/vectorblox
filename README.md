@@ -5,6 +5,8 @@ Repozytorium zawiera kod pierwszego etapu dla projektu integracji akceleratora V
 
 Implementacja weryfikuje poprawność tzw. backdoor loading'u do modelu pamięci AXI4 za pomocą zadań systemowych `$readmemh` oraz zrzutu pamięci przez `$writememh`. Przetestowanie tej ścieżki danych było konieczne przed docelowym wpięciem IP core'a VectorBlox oraz BFM Mastera do symulacji.
 
+***system przeznaczony do pracy na obrazkach 64 x 64 pikseli w celu przyspieszenia dzialania skryptow
+
 ## Zawartość repozytorium
 
 **Skrypty weryfikacyjne (Python):**
