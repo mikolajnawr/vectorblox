@@ -1,7 +1,7 @@
 # VectorBlox AI - Image Data Flow PoC
 
-## Cel projektu
-Repozytorium zawiera kod pierwszego etapu (Proof of Concept) dla projektu integracji akceleratora VectorBlox w FPGA. Celem jest weryfikacja przepływu danych obrazu między środowiskiem programowym (Python) a sprzętowym środowiskiem symulacyjnym (Riviera-PRO).
+## Clue
+Repozytorium zawiera kod pierwszego etapu dla projektu integracji akceleratora VectorBlox w FPGA. Celem jest weryfikacja przepływu danych obrazu między środowiskiem programowym (Python) a sprzętowym środowiskiem symulacyjnym.
 
 Implementacja weryfikuje poprawność tzw. backdoor loading'u do modelu pamięci AXI4 za pomocą zadań systemowych `$readmemh` oraz zrzutu pamięci przez `$writememh`. Przetestowanie tej ścieżki danych było konieczne przed docelowym wpięciem IP core'a VectorBlox oraz BFM Mastera do symulacji.
 
@@ -17,7 +17,7 @@ Implementacja weryfikuje poprawność tzw. backdoor loading'u do modelu pamięci
 * `taxi_axi_if.sv` - definicje interfejsów magistrali AXI4.
 * `tb_ram.sv` - testbench powołujący do życia pamięć, zarządzający zegarem oraz odczytem/zapisem plików HEX w czasie symulacji.
 
-## Przepływ pracy (Workflow)
+## Jak uruchomić
 
 1. Uruchom skrypt `png_to_hex.py` lokalnie, aby wygenerować plik `image_in.hex`.
 2. Skopiuj pliki `*.sv` oraz `image_in.hex` na serwer symulacyjny.
