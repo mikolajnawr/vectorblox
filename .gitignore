@@ -14,3 +14,5 @@ compile/
 *.log
 *.bak
 dataset.asdb
+data/results_out.hex
+data/wynik_ai.png
