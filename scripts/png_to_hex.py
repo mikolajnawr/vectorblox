@@ -40,4 +40,4 @@ def convert_png_to_hex(input_file, output_file, width=64, height=64):
 # Uruchomienie skryptu
 if __name__ == "__main__":
     # Zakładam, że masz jakiś obrazek test.png w tym samym folderze
-    convert_png_to_hex("64photo.png", "image_in.hex", width=64, height=64)
+    convert_png_to_hex("/data/64photo.png", "/data/image_in.hex", width=64, height=64)

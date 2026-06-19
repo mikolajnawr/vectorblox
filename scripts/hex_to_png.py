@@ -41,4 +41,4 @@ def convert_hex_to_png(input_file, output_file, width=64, height=64):
 # Uruchomienie skryptu
 if __name__ == "__main__":
     # UWAGA: Rozmiar (width, height) MUSI być taki sam jak w Skrypcie 1!
-    convert_hex_to_png("image_out.hex", "wynik.png", width=64, height=64)
+    convert_hex_to_png("/data/image_out.hex", "/data/wynik.png", width=64, height=64)

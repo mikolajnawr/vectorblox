@@ -1,10 +1,16 @@
-# Ignoruj środowisko wirtualne Pythona
+# Srodowisko Python
 venv/
 __pycache__/
 
-# Ignoruj wygenerowane pliki HEX (zajmują dużo miejsca, a i tak generuje je skrypt)
-*.hex
+# Wygenerowane pliki danych (artefakty)
+data/*.hex
+data/wynik.png
 
-# Ignoruj pliki tymczasowe
+# Pliki tymczasowe i logi symulatora Riviera-PRO
+work/
+compile/
+*.asdb
+*.awc
 *.log
-wynik.png
+*.bak
+dataset.asdb

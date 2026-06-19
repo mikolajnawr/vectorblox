@@ -51,4 +51,4 @@ def verify_binary_match(original_path, result_path, width=64, height=64):
 if __name__ == "__main__":
     # UWAGA: Podaj dokładną nazwę swojego pliku wejściowego (np. '64photo.png' lub 'test.png')
     # oraz nazwę pliku wygenerowanego na samym końcu ('wynik.png')
-    verify_binary_match("64photo.png", "wynik.png", width=64, height=64)
+    verify_binary_match("/data/64photo.png", "/data/wynik.png", width=64, height=64)
