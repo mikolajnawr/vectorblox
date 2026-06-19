@@ -1,29 +1,36 @@
-# VectorBlox AI - Image Data Flow PoC
+# VectorBlox AI - Image Data Flow & AXI BFM Integration
 
-## Clue
-Repozytorium zawiera kod pierwszego etapu dla projektu integracji akceleratora VectorBlox w FPGA. Celem jest weryfikacja przepływu danych obrazu między środowiskiem programowym (Python) a sprzętowym środowiskiem symulacyjnym.
+## Cel projektu
+Repozytorium zawiera zaawansowane środowisko weryfikacyjne dla akceleratora VectorBlox. Głównym celem jest walidacja pełnej ścieżki przesyłu danych obrazu (Software-Hardware-Software) z wykorzystaniem fizycznych transakcji na magistrali AXI4 (Frontdoor loading) oraz mapy pamięci SoC.
 
-Implementacja weryfikuje poprawność tzw. backdoor loading'u do modelu pamięci AXI4 za pomocą zadań systemowych `$readmemh` oraz zrzutu pamięci przez `$writememh`. Przetestowanie tej ścieżki danych było konieczne przed docelowym wpięciem IP core'a VectorBlox oraz BFM Mastera do symulacji.
+Środowisko zostało zautomatyzowane i przygotowane na bezpośrednie wpięcie wygenerowanego IP Core'a `CoreVectorBlox`. Na obecnym etapie wirtualny procesor symuluje również zachowanie sieci neuronowej (zapis bounding boxów), które są poddawane post-processingowi w Pythonie.
 
-***system przeznaczony do pracy na obrazkach 64 x 64 pikseli w celu przyspieszenia dzialania skryptow
+## Struktura katalogów
+Projekt został zorganizowany zgodnie ze standardami weryfikacyjnymi:
 
-## Zawartość repozytorium
+* `data/` - Przestrzeń na artefakty: wejściowe/wyjściowe obrazy PNG oraz zrzuty pamięci HEX (pliki ignorowane w Git).
+* `rtl/` - Pamięć RAM z interfejsem AXI4 (`taxi_axi_ram.sv`) oraz definicje magistrali (`taxi_axi_if.sv`).
+* `scripts/` - Skrypty Python do obróbki danych (konwersje HEX <-> PNG, weryfikacja bit-accurate oraz rysowanie ramek AI).
+* `tb/` - Moduły weryfikacyjne: pakiet mapy pamięci (`tb_pkg.sv`), wirtualny procesor Aldec BFM (`axi4_master.sv`), główny testbench (`tb_ram.sv`) oraz skrypt automatyzujący (`run.do`).
 
-**Skrypty weryfikacyjne (Python):**
-* `png_to_hex.py` - konwersja wejściowego obrazu PNG do formatu HEX (32-bit RGBA) kompatybilnego z pamięcią RAM.
-* `hex_to_png.py` - rekonstrukcja obrazu wyjściowego ze zrzutu pamięci HEX.
-* `verify_images.py` - test bit-accurate sprawdzający pełną zgodność binarną obrazu wejściowego z wyjściowym.
+## Kluczowe funkcjonalności
 
-**Kod RTL i Testbench (SystemVerilog):**
-* `taxi_axi_ram.sv` - model pamięci z interfejsem AXI4 (pełni rolę głównego bufora danych).
-* `taxi_axi_if.sv` - definicje interfejsów magistrali AXI4.
-* `tb_ram.sv` - testbench powołujący do życia pamięć, zarządzający zegarem oraz odczytem/zapisem plików HEX w czasie symulacji.
+1. **Dynamiczna parametryzacja:** Środowisko (TCL oraz SystemVerilog) automatycznie adaptuje wielkość sprzętowej pamięci RAM oraz szerokość szyny adresowej (ADDR_W) do rozdzielczości obrazu dostarczonej ze skryptów Pythona.
+2. **Aldec AXI4 BFM:** Zastąpienie instrukcji `$readmemh` fizycznymi transakcjami `write_burst` oraz `read_burst` w celu pełnej weryfikacji sprzętowej kontrolerów pamięci.
+3. **SystemVerilog Assertions (SVA):** Detekcja błędów integralności danych w locie z wykorzystaniem natychmiastowych asercji.
+4. **Post-processing AI:** Skrypt rekonstruujący obraz automatycznie weryfikuje dedykowany obszar pamięci (zdefiniowany w `tb_pkg.sv`) i nanosi na obraz wyjściowy naniesione przez sprzęt ramki wykrytych obiektów (Bounding Boxes).
 
-## Jak uruchomić
+## Wymagania
+* **Python 3** (biblioteka `Pillow`).
+* **Riviera-PRO** (wymagana integracja z biblioteką `aldec_axi_bfm` oraz wsparcie DPI/C++).
 
-1. Uruchom skrypt `png_to_hex.py` lokalnie, aby wygenerować plik `image_in.hex`.
-2. Skopiuj pliki `*.sv` oraz `image_in.hex` na serwer symulacyjny.
-3. Skompiluj projekt w Riviera-PRO i zainicjalizuj moduł `tb_ram`.
-4. Uruchom symulację (`run -all`). Po jej zakończeniu na serwerze pojawi się plik `image_out.hex`.
-5. Pobierz `image_out.hex` do środowiska lokalnego i odtwórz obraz skryptem `hex_to_png.py`.
-6. Wykonaj skrypt `verify_images.py` w celu potwierdzenia integralności danych.
+## Uruchomienie (Automatyczny Flow)
+Wszystkie operacje (pre-processing, kompilacja, symulacja, post-processing i weryfikacja) zostały spięte w jeden skrypt.
+
+1. Uruchom konsolę środowiska Riviera-PRO.
+2. Przejdź do katalogu testbencha:
+   `cd tb/`
+3. Uruchom skrypt główny:
+   `do run.do`
+
+Po udanej symulacji, w katalogu `data/` wygenerowane zostaną pliki weryfikacyjne, w tym `wynik_ai.png` zawierający naniesione przez sprzęt wyniki detekcji.
