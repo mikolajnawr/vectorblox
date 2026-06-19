@@ -1,6 +1,10 @@
 `timescale 1ns / 1ps
 
+// IMPORTUJEMY NASZ? MAP? PAMI?CI
+import tb_pkg::*;
+
 module tb_ram #(
+    // Parametry NADPISYWANE automatycznie przez skrypt run.do (-g)
     parameter int IMG_W  = 64,            
     parameter int IMG_H  = 64,            
     parameter int ADDR_W = 16             
@@ -12,9 +16,10 @@ module tb_ram #(
     localparam int MAX_BEATS = 256;               
     localparam int NUM_PIXELS = IMG_W * IMG_H;    
 
-    // ZAKTUALIZOWANE SCIEZKI (Patrzymy z folderu tb/ do folderu data/)
+    // Sciezki do plikow w folderze data/
     localparam string HEX_IN  = "../data/image_in.hex";      
     localparam string HEX_OUT = "../data/image_out.hex";  
+    localparam string RES_OUT = "../data/results_out.hex"; 
 
     bit clk = 0;
     always #5 clk = ~clk;        
@@ -43,7 +48,7 @@ module tb_ram #(
         .s_axi_rd (axi_if)       
     );
 
-    // 3. WIRTUALNY PROCESOR (BFM)
+    // 3. Wirtualny procesor (BFM) do wysy?ania danych po kablach
     axi4_master #(
         .DATA_W (DATA_W),
         .ADDR_W (ADDR_W),
@@ -72,16 +77,16 @@ module tb_ram #(
         .RLAST    (axi_if.rlast),    .RVALID  (axi_if.rvalid),  .RREADY  (axi_if.rready)
     );
 
-    logic [DATA_W-1:0] img_data  [0:NUM_PIXELS-1];   
-    logic [DATA_W-1:0] read_back [0:NUM_PIXELS-1];   
+    // Bufory testbencha
+    logic [DATA_W-1:0] img_data   [0:NUM_PIXELS-1];   
+    logic [DATA_W-1:0] read_back  [0:NUM_PIXELS-1];   
+    logic [DATA_W-1:0] ai_results [0:3]; 
 
     initial begin : main
         int                remaining, beats, word_idx, k, i;
-        int                err;
+        int                err = 0;
         logic [ADDR_W-1:0] byte_addr;
         logic [DATA_W-1:0] wr_chunk [0:MAX_BEATS-1];
-
-        err = 0;
 
         $readmemh(HEX_IN, img_data);
         $display("[%0t] Wczytano '%s' (%0d pikseli) do wirtualnej poczekalni TB", $time, HEX_IN, NUM_PIXELS);
@@ -89,14 +94,15 @@ module tb_ram #(
         wait (rst == 0);
         repeat (4) @(posedge clk);
 
-        // ZAPIS
+        // -------------------------------------------------------------
+        // Faza 1: WGRYWANIE OBRAZKA (Z uzyciem Mapy Pamieci)
+        // -------------------------------------------------------------
         word_idx  = 0;
         remaining = NUM_PIXELS;
         while (remaining > 0) begin
             beats     = (remaining > MAX_BEATS) ? MAX_BEATS : remaining;
-            byte_addr = ADDR_W'(word_idx * STRB_W);   
-            for (k = 0; k < beats; k++)
-                wr_chunk[k] = img_data[word_idx + k];
+            byte_addr = ADDR_W'(ADDR_IMAGE_BASE + (word_idx * STRB_W));   
+            for (k = 0; k < beats; k++) wr_chunk[k] = img_data[word_idx + k];
 
             m_axi.write_burst(byte_addr, beats, wr_chunk);
             word_idx  += beats;
@@ -104,37 +110,64 @@ module tb_ram #(
         end
         $display("[%0t] Zapisano %0d pikseli FIZYCZNIE po AXI4 (kanal AW/W/B)", $time, NUM_PIXELS);
 
-        // ODCZYT
+        // -------------------------------------------------------------
+        // Faza 2: ODCZYT OBRAZKA
+        // -------------------------------------------------------------
         word_idx  = 0;
         remaining = NUM_PIXELS;
         while (remaining > 0) begin
             beats     = (remaining > MAX_BEATS) ? MAX_BEATS : remaining;
-            byte_addr = ADDR_W'(word_idx * STRB_W);
+            byte_addr = ADDR_W'(ADDR_IMAGE_BASE + (word_idx * STRB_W));
 
             m_axi.read_burst(byte_addr, beats);
-
-            for (k = 0; k < beats; k++)
-                read_back[word_idx + k] = m_axi.rbuf[k];
+            for (k = 0; k < beats; k++) read_back[word_idx + k] = m_axi.rbuf[k];
 
             word_idx  += beats;
             remaining -= beats;
         end
         $display("[%0t] Odczytano %0d pikseli FIZYCZNIE po AXI4 (kanal AR/R)", $time, NUM_PIXELS);
 
-        for (i = 0; i < NUM_PIXELS; i++)
-            if (read_back[i] !== img_data[i]) begin
+        // -------------------------------------------------------------
+        // SPRAWDZANIE BLEDOW W LOCIE (Asercje SystemVerilog - SVA)
+        // -------------------------------------------------------------
+        for (i = 0; i < NUM_PIXELS; i++) begin
+            check_pixel_data: assert (read_back[i] === img_data[i]) 
+            else begin
                 $error("ODCZYT: niezgodnosc na pikselu %0d: AXI=%h oczek=%h", i, read_back[i], img_data[i]);
                 err++;
             end
+        end
 
+        // Zrzut odebranego obrazka do pliku
         $writememh(HEX_OUT, read_back);
 
-        if (err == 0)
-            $display("[%0t] ✅ WYNIK: PASS - Pelna petla AXI zapis->odczyt dziala perfekcyjnie! (%0d px)", $time, NUM_PIXELS);
-        else
-            $display("[%0t] ❌ WYNIK: FAIL - %0d niezgodnosci", $time, err);
+        // -------------------------------------------------------------
+        // Faza 3: FA?SZYWE AI (Symulujemy, ?e VectorBlox co? policzy?)
+        // -------------------------------------------------------------
+        $display("[%0t] --- WIRTUALNY VECTORBLOX ---", $time);
+        $display("[%0t] Zapisuje wyniki analizy pod adres: %h", $time, ADDR_RESULTS_BASE);
+        
+        wr_chunk[0] = 32'd15; // X
+        wr_chunk[1] = 32'd15; // Y
+        wr_chunk[2] = 32'd25; // Szerokosc
+        wr_chunk[3] = 32'd25; // Wysokosc
+        
+        byte_addr = ADDR_W'(ADDR_RESULTS_BASE);
+        m_axi.write_burst(byte_addr, 4, wr_chunk);
 
-        #50 $finish;
+        m_axi.read_burst(byte_addr, 4);
+        for (k = 0; k < 4; k++) ai_results[k] = m_axi.rbuf[k];
+        
+        $writememh(RES_OUT, ai_results);
+        $display("[%0t] Zrzucono zmyslone wyniki do pliku %s", $time, RES_OUT);
+        // -------------------------------------------------------------
+
+        if (err == 0)
+            $display("[%0t] ? WYNIK: PASS - Pelna petla AXI zapis->odczyt dziala perfekcyjnie!", $time);
+        else
+            $display("[%0t] ? WYNIK: FAIL - %0d niezgodnosci", $time, err);
+
+        #50 $stop;
     end
 
 endmodule

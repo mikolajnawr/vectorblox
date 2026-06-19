@@ -16,3 +16,6 @@ compile/
 dataset.asdb
 data/results_out.hex
 data/wynik_ai.png
+*.tmp
+*.asdbw/
+tb/dataset.asdbw/
